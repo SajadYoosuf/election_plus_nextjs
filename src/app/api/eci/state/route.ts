@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-// Run this function from Mumbai (India) — ECI blocks non-Indian IP addresses
+// Use edge runtime so it executes in the region closest to the user (e.g. India)
+// This bypasses ECI's geo-block on Vercel's default US servers, even on the free tier.
+export const runtime = 'edge';
 export const preferredRegion = 'bom1';
 
 const USER_AGENTS = [

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Run from Mumbai (India) — ECI blocks Vercel's US servers
+// Use edge runtime so it executes in the region closest to the user (e.g. India)
+export const runtime = 'edge';
 export const preferredRegion = 'bom1';
 
 const USER_AGENTS = [
