@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --color-kep-bg: var(--kep-bg);
+  --color-kep-surface: var(--kep-surface);
+  --color-kep-card: var(--kep-card);
+  --color-kep-elevated: var(--kep-elevated);
+  
+  --color-kep-ldf: var(--kep-ldf);
+  --color-kep-udf: var(--kep-udf);
+  --color-kep-nda: var(--kep-nda);
+  
+  --color-kep-ai: var(--kep-ai);
+  --color-kep-gold: var(--kep-gold);
+  
+  --color-kep-text-primary: var(--kep-text-primary);
+  --color-kep-text-secondary: var(--kep-text-secondary);
+}
+
+:root {
+  /* ── BACKGROUNDS ─────────────────────── */
+  --kep-bg:               #07070D;
+  --kep-surface:          #100F1A;
+  --kep-card:             #161523;
+  --kep-elevated:         #1E1C2E;
+  --kep-overlay:          #252336;
+
+  /* ── PARTY COLORS ────────────────────── */
+  --kep-ldf:              #E8192C;
+  --kep-ldf-glow:         #E8192C26;
+  --kep-ldf-dim:          #6B0D14;
+
+  --kep-udf:              #1A7FD4;
+  --kep-udf-glow:         #1A7FD426;
+  --kep-udf-dim:          #0D3D6B;
+
+  --kep-nda:              #FF6B1A;
+  --kep-nda-glow:         #FF6B1A26;
+  --kep-nda-dim:          #7A3008;
+
+  --kep-iuml:             #007A3D;
+  --kep-iuml-glow:        #007A3D26;
+
+  /* ── AI / ACCENT ─────────────────────── */
+  --kep-ai:               #7B5EA7;
+  --kep-ai-bright:        #9D7DD1;
+  --kep-ai-glow:          #7B5EA726;
+
+  /* ── GOLD (nilavilakku) ──────────────── */
+  --kep-gold:             #D4A843;
+  --kep-gold-bright:      #F0C765;
+  --kep-gold-glow:        #D4A84326;
+
+  /* ── STATUS ──────────────────────────── */
+  --kep-winning:          #22C77A;
+  --kep-close:            #FFB830;
+  --kep-won:              #4AEFAF;
+  --kep-pending:          #4A4A6A;
+
+  /* ── TEXT ────────────────────────────── */
+  --kep-text-primary:     #F2EDFF;
+  --kep-text-secondary:   #9B96B8;
+  --kep-text-tertiary:    #5C5878;
+
+  /* ── BORDERS ─────────────────────────── */
+  --kep-border:           #2A2740;
+  --kep-divider:          #1E1B30;
+  --kep-border-glow:      #3D3860;
+}
+
+body {
+  background-color: var(--kep-bg);
+  color: var(--kep-text-primary);
+  font-family: var(--font-dm-sans), sans-serif;
+}
