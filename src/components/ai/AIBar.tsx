@@ -1,18 +1,19 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useResultsStore } from '@/store/results';
 import { useMapStore } from '@/store/map';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Helper to extract text from both v5 (m.content string) and v6 (m.parts array) messages
+// Helper to extract text from v6 UIMessage (parts[]) or legacy v5 (content string)
 function getMessageText(m: any): string {
   if (typeof m.content === 'string') return m.content;
   if (Array.isArray(m.parts)) {
     return m.parts
       .filter((p: any) => p.type === 'text')
-      .map((p: any) => p.text || '')
+      .map((p: any) => p.text ?? '')
       .join('');
   }
   return '';
@@ -24,37 +25,52 @@ export function AIBar() {
   const { liveResultsJson } = useResultsStore();
   const { selectedAcNo } = useMapStore();
 
-  const chat = useChat({
-    api: '/api/chat',
-    body: {
-      liveResultsJson: liveResultsJson || '{}',
-      currentConstituency: selectedAcNo || 'Kerala',
-    },
-    initialMessages: [
-      { id: 'welcome', role: 'assistant', content: 'നമസ്കാരം! 🗳️ Kerala Election 2026 results-നെ കുറിച്ച് ചോദിക്കൂ.' }
+  // Keep a ref so the transport body always has the latest live data
+  const liveRef = useRef({ liveResultsJson, selectedAcNo });
+  liveRef.current = { liveResultsJson, selectedAcNo };
+
+  const { messages, error, status, sendMessage } = useChat({
+    // v6: use DefaultChatTransport (concrete impl of HttpChatTransport)
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      // body as a function so it's evaluated fresh on each request
+      body: () => ({
+        liveResultsJson: liveRef.current.liveResultsJson || '{}',
+        currentConstituency: liveRef.current.selectedAcNo || 'Kerala',
+      }),
+    }),
+    messages: [
+      {
+        id: 'welcome',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'നമസ്കാരം! 🗳️ Kerala Election 2026 results-നെ കുറിച്ച് ചോദിക്കൂ.' }],
+      } as any,
     ],
     onError: (err) => {
       console.error('AI SDK Error:', err);
-    }
+    },
   });
 
-  const { messages, error, status, sendMessage } = chat as any;
   const isLoading = status === 'streaming' || status === 'submitted';
 
   const onManualSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!localInput || isLoading) return;
-    
-    const text = localInput;
+    if (!localInput.trim() || isLoading) return;
+    const text = localInput.trim();
     setLocalInput('');
-    
-    if (typeof sendMessage === 'function') {
-      try {
-        // v6 sendMessage expects an object with 'text' property
-        await sendMessage({ text });
-      } catch (err) {
-        console.error('Send Error:', err);
-      }
+    try {
+      await sendMessage({ text });
+    } catch (err) {
+      console.error('Send Error:', err);
+    }
+  };
+
+  const onSuggestion = async (s: string) => {
+    if (isLoading) return;
+    try {
+      await sendMessage({ text: s });
+    } catch (err) {
+      console.error('Suggestion Error:', err);
     }
   };
 
@@ -62,20 +78,20 @@ export function AIBar() {
     <>
       {/* Mobile Floating Bar */}
       <div className="fixed bottom-0 left-0 right-0 md:hidden bg-kep-bg/90 backdrop-blur-xl border-t border-white/10 p-4 z-50">
-        <button 
+        <button
           onClick={() => setIsOpen(true)}
           className="w-full bg-kep-surface border border-white/10 rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-transform"
         >
           <span className="text-xl">🤖</span>
           <span className="text-sm font-bold text-kep-text-secondary truncate">
-            {messages.length > 1 ? getMessageText(messages[messages.length-1]) : 'Ask Election Assistant...'}
+            {messages.length > 1 ? getMessageText(messages[messages.length - 1]) : 'Ask Election Assistant...'}
           </span>
         </button>
       </div>
 
       {/* Desktop Floating Button */}
       <div className="fixed bottom-10 right-10 z-50 hidden md:block">
-        <motion.button 
+        <motion.button
           whileHover={{ scale: 1.1, rotate: 5 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsOpen(true)}
@@ -89,7 +105,7 @@ export function AIBar() {
       <AnimatePresence>
         {isOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -115,7 +131,7 @@ export function AIBar() {
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsOpen(false)}
                   className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
                 >
@@ -126,22 +142,22 @@ export function AIBar() {
               {/* Messages Container */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                 {messages.map((m) => (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    key={m.id} 
+                    key={m.id}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[85%] p-4 rounded-[24px] ${
-                      m.role === 'user' 
-                        ? 'bg-kep-ai text-white shadow-xl shadow-kep-ai/20 rounded-br-none' 
+                      m.role === 'user'
+                        ? 'bg-kep-ai text-white shadow-xl shadow-kep-ai/20 rounded-br-none'
                         : 'bg-kep-surface border border-white/10 text-kep-text-primary rounded-bl-none'
                     }`}>
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{getMessageText(m)}</p>
                     </div>
                   </motion.div>
                 ))}
-                
+
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="bg-kep-surface border border-white/10 p-4 rounded-2xl animate-pulse">
@@ -170,19 +186,19 @@ export function AIBar() {
                     placeholder="Ask about live counts, fronts, or history..."
                     className="w-full bg-kep-bg border border-white/10 rounded-[24px] py-5 pl-6 pr-16 text-sm focus:outline-none focus:border-kep-ai focus:ring-4 focus:ring-kep-ai/10 transition-all placeholder:text-kep-text-tertiary"
                   />
-                  <button 
+                  <button
                     type="submit"
-                    disabled={isLoading || !localInput}
+                    disabled={isLoading || !localInput.trim()}
                     className="absolute right-2.5 top-2.5 w-11 h-11 rounded-xl bg-kep-ai text-white flex items-center justify-center disabled:opacity-30 disabled:grayscale transition-all hover:shadow-lg hover:shadow-kep-ai/30 active:scale-90"
                   >
                     <span className="text-xl font-black">↑</span>
                   </button>
                 </form>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {['LDF Lead?', 'Pala Winner?', 'UDF Total?'].map(s => (
-                    <button 
+                  {['LDF Lead?', 'Pala Winner?', 'UDF Total?'].map((s) => (
+                    <button
                       key={s}
-                      onClick={() => sendMessage?.({ text: s })}
+                      onClick={() => onSuggestion(s)}
                       className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold text-kep-text-tertiary hover:bg-white/10 hover:text-white transition-all"
                     >
                       {s}
